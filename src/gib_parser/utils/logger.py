@@ -54,9 +54,6 @@ def _configure_library_root_logger() -> None:
         # Apply our default configuration to the library root logger.
         library_root_logger = _get_library_root_logger()
         library_root_logger.setLevel(_get_default_log_level())
-        # Add logging format
-        formatter = logging.Formatter("[%(levelname)s|%(pathname)s:%(lineno)s] %(asctime)s >> %(message)s")
-        _default_handler.setFormatter(formatter)
 
         library_root_logger.propagate = True
 
@@ -79,17 +76,22 @@ def get_logger(name: Optional[str] = None) -> logging.Logger:
     base_logger.setLevel(_get_default_log_level())
     # Add a stdout handler / stderr handler
     if os.getenv("FLUSH_TO_CONSOLE").lower() in ["yeah", "true", "1", "yes"]:
-        handler = logging.StreamHandler(sys.stdout)
-        handler_format = logging.Formatter("[%(levelname)s|%(filename)s:%(lineno)s] %(asctime)s >> %(message)s")
-        handler.setFormatter(handler_format)
-        handler.setLevel(_get_default_log_level())
-        base_logger.addHandler(handler)
+
+        if not any(isinstance(h, logging.StreamHandler) and h.stream == sys.stdout for h in base_logger.handlers):
+
+            handler = logging.StreamHandler(sys.stdout)
+            handler_format = logging.Formatter("[%(levelname)s|%(filename)s:%(lineno)s] %(asctime)s >> %(message)s")
+            handler.setFormatter(handler_format)
+            handler.setLevel(_get_default_log_level())
+            base_logger.addHandler(handler)
     else:
-        handler = logging.StreamHandler(sys.stderr)
-        handler_format = logging.Formatter("[%(levelname)s|%(filename)s:%(lineno)s] %(asctime)s >> %(message)s")
-        handler.setFormatter(handler_format)
-        handler.setLevel(_get_default_log_level())
-        base_logger.addHandler(handler)
+        if not any(isinstance(h, logging.StreamHandler) and h.stream == sys.stderr for h in base_logger.handlers):
+
+            handler = logging.StreamHandler(sys.stderr)
+            handler_format = logging.Formatter("[%(levelname)s|%(filename)s:%(lineno)s] %(asctime)s >> %(message)s")
+            handler.setFormatter(handler_format)
+            handler.setLevel(_get_default_log_level())
+            base_logger.addHandler(handler)
 
     return base_logger
 
