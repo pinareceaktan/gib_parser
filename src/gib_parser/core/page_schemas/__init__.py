@@ -1,0 +1,1 @@
+from gib_parser.core.page_schemas.schema_manager import ComponentManager

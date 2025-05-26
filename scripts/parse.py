@@ -14,7 +14,10 @@ os.environ["FLUSH_TO_CONSOLE"] = "True"
 os.environ["SOURCE_WEB_PATH"] = "https://www.gib.gov.tr/gibmevzuat"
 
 from gib_parser import get_logger
-from gib_parser import GibParser
+from gib_parser import GibPageOrchestrator
+from gib_parser import SeleniumClient
+from gib_parser import ComponentManager
+
 
 logger = get_logger("gib_parser")
 
@@ -41,9 +44,13 @@ logger.debug(f"Output file path is set to: {os.getenv('OUTPUT_DIR')}")
 
 
 if __name__ == '__main__':
-    gib_parser = GibParser(source_web_path = os.getenv("SOURCE_WEB_PATH"),
-                           sections_folder=sections_folder,
-                           laws_folder=laws_folder)
+    client = SeleniumClient(source_web_page = os.getenv("SOURCE_WEB_PATH"))
+    component_manager = ComponentManager()
+    gib_parser = GibPageOrchestrator(
+        parser = client,
+        component_manager=component_manager,
+        sections_folder=sections_folder,
+        laws_folder=laws_folder)
     gib_parser.parse()
 
 
