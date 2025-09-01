@@ -1,2 +1,2 @@
-from gib_parser.core.gib_page_orchestrator import GibPageOrchestrator
+from gib_parser.core.orchestrate import GibPageOrchestrator
 from gib_parser.core.selenium_client import SeleniumClient

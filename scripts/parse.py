@@ -11,7 +11,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1])+ "/src")
 
 os.environ["DEFAULT_LOG_LEVEL"] = "info"
 os.environ["FLUSH_TO_CONSOLE"] = "True"
-os.environ["SOURCE_WEB_PATH"] = "https://www.gib.gov.tr/gibmevzuat"
+os.environ["SOURCE_WEB_PATH"] = "https://www.gib.gov.tr/mevzuat/vergi-mevzuati"
 
 from gib_parser import get_logger
 from gib_parser import GibPageOrchestrator

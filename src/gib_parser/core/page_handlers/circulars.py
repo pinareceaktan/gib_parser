@@ -12,7 +12,7 @@ base_logger = get_logger(__name__)
 import requests
 
 
-class InternalCircularsHandler(AbstractPageHandler, ABC):
+class CircularHandler(AbstractPageHandler, ABC):
     def __init__(self):
         super().__init__()
 
@@ -28,31 +28,31 @@ class InternalCircularsHandler(AbstractPageHandler, ABC):
 
         """
         # Click on the tab to open the href table
-        by, cid = self.component_manager.get_component_id_by_tag("level_3_ic_genelgeler_tab")
+        by, cid = self.component_manager.get_component_id_by_tag("level_3_sirkuler_tab")
 
         self.driver.find_element(by, cid).click()
 
         # Wait until component to be filled properly
         wait = WebDriverWait(self.driver, 25)
-        wait.until(EC.presence_of_element_located((By.ID, "div-liste-ig")))
+        wait.until(EC.presence_of_element_located((By.ID, "div-liste-sir")))
         wait.until(
-            lambda d: len(d.find_elements(By.XPATH, "//tr[@onclick[contains(., 'div-icerik-ig')]]")) > 0)
+            lambda d: len(d.find_elements(By.XPATH, "//tr[@onclick[contains(., 'div-liste-sir')]]")) > 0)
         time.sleep(15)
         # Start to parsing the table
-        by, cid = self.component_manager.get_component_id_by_tag("level_3_ic_genelgeler_body")
+        by, cid = self.component_manager.get_component_id_by_tag("level_3_sirkuler_body")
         header_row = self.driver.find_element(by, cid)
 
-        by, cid = self.component_manager.get_component_id_by_tag("level_3_ic_genelgeler_table_header")
+        by, cid = self.component_manager.get_component_id_by_tag("level_3_sirkuler_table_header")
         header_cols = header_row.find_elements(by, cid)
         headers = [col.text.strip() for col in header_cols]
 
         # 2. Find content rows, each of them are a tr component with onclick events
-        by, cid = self.component_manager.get_component_id_by_tag("level_3_ic_genelgeler_table_row")
+        by, cid = self.component_manager.get_component_id_by_tag("level_3_sirkuler_table_row")
         data_rows = self.driver.find_elements(by, cid)
         # Process table
         all_data = []
         for ix, row in enumerate(data_rows):
-            by, cid = self.component_manager.get_component_id_by_tag("level_3_ic_genelgeler_table_header")
+            by, cid = self.component_manager.get_component_id_by_tag("level_3_sirkuler_table_header")
 
             cols = row.find_elements(by, cid)
 
@@ -68,7 +68,7 @@ class InternalCircularsHandler(AbstractPageHandler, ABC):
                 self.driver.execute_script("arguments[0].click();", row)
                 # wait for the content
                 wait = WebDriverWait(self.driver, 10)
-                by, cid = self.component_manager.get_component_id_by_tag("level_3_ic_genelgeler_table_popup")
+                by, cid = self.component_manager.get_component_id_by_tag("level_3_sirkuler_table_popup")
                 wait.until(EC.presence_of_element_located((by, cid)))
 
                 content_div = self.driver.find_element(by, cid)
@@ -77,7 +77,7 @@ class InternalCircularsHandler(AbstractPageHandler, ABC):
                 row_dict.update({"Detay Aciklama": full_text})
                 try:
                     # Get the link if provided
-                    by, cid = self.component_manager.get_component_id_by_tag("level_3_ic_genelgeler_table_popup_pdf_text")
+                    by, cid = self.component_manager.get_component_id_by_tag("level_3_sirkuler_table_popup_pdf_text")
                     link_element = content_div.find_element(by, cid)
 
 
@@ -111,3 +111,17 @@ class InternalCircularsHandler(AbstractPageHandler, ABC):
                 save_pdf(response.content, filename)
 
                 all_data.append(row_dict)
+
+        df = pd.DataFrame(all_data, columns=headers)
+
+        # Save table under sections
+        sections_path = os.path.join(self.sections_folder, section_name)
+        os.makedirs(sections_path, exist_ok=True)
+        filename = os.path.join(sections_path, f"{law_name}_{section_name}_ck_karari.csv")
+        save_csv(df, filename)
+
+        # Save table under laws
+        laws_path = os.path.join(self.laws_folder, law_name)
+        os.makedirs(laws_path, exist_ok=True)
+        filename = os.path.join(laws_path, f"{law_name}_{section_name}_ck_karari.csv")
+        save_csv(df, filename)
