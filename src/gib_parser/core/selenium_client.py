@@ -218,6 +218,35 @@ class SeleniumClient(AbstractParsingClient):
 
         return True
 
+    def click_in_new_tab(self, web_element_to_click):
+        """
+        Open web element to click in new tab
+        """
+        main_tab = self.driver.current_window_handle
+        self.driver.execute_script("arguments[0].click();", web_element_to_click)
+
+        WebDriverWait(self.driver, 10).until(lambda d: len(d.window_handles) > 1)
+        new_tab = [h for h in self.driver.window_handles if h != main_tab][0]
+        self.driver.switch_to.window(new_tab)
+
+    def click_component_by_xpath(self, xpath, timeout=10):
+        wait = WebDriverWait(self.driver, timeout)
+
+        tab = wait.until(EC.presence_of_element_located((By.XPATH, xpath)))
+        tab = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
+
+        self.driver.execute_script("arguments[0].scrollIntoView({block:'center',inline:'center'});", tab)
+        try:
+            tab.click()
+        except Exception:
+            self.driver.execute_script("arguments[0].click();", tab)
+
+        # confirm via aria-selected
+        try:
+            wait.until(EC.presence_of_element_located(
+                (By.XPATH, f"{xpath}[@aria-selected='true']")))
+        except TimeoutError:
+            pass
 
 
 

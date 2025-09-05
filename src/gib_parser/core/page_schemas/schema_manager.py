@@ -32,11 +32,10 @@ web_component_registry = {
     "level_1_check": WebComponent("level_1_check", By.XPATH, "//p[normalize-space(.)='Temel Kanunlar']"),
     "level_1_component": WebComponent("level_1_component", By.CSS_SELECTOR, 'a[href^="/mevzuat/kanun/"]'),
 
-    "level_2_left_tabs": WebComponent("level_2_left_tabs", By.CSS_SELECTOR, "div.solSutun ul li"),
-    "level_2_left_tabs_spider": WebComponent("level_2_left_tabs_span", By.TAG_NAME, "span"),
+    "level_2_left_container": WebComponent("level_2_left_tabs", By.XPATH, "//div[@id='pageContainer']/div/div/main/div/div[3]/div/div/div/div/div"),
+    "level_2_left_buttons_on_container": WebComponent("level_2_left_tabs_span", By.XPATH, "./div/h6"),
 
-    # "level_3_left_el_maddeler":  WebComponent("level_3_maddeler_left_el", By.ID, "mevzuat_km"),
-    "level_3_maddeler_combobox": WebComponent("level_3_maddeler_combobox", By.ID, "km-select"),
+    "level_3_maddeler_combobox": WebComponent("level_3_maddeler_combobox", By.ID, "r2:"),
     "level_3_maddeler_body": WebComponent("level_3_maddeler_body", By.ID, "div-icerik-maddeler"),
 
     # "level_3_left_el_gerekçeler": WebComponent("level_3_gerekceler_left_el", By.TAG_NAME, "mevzuat_ger"),

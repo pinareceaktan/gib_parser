@@ -19,6 +19,7 @@ import requests
 
 from gib_parser import save_text, save_pdf, save_csv, generate_hash_from_dict
 from gib_parser.core.page_handlers.page_handler_factory import PageHandlerFactory
+from gib_parser.core.selenium_client import SeleniumClient
 from gib_parser.helpers.abstract_classes import AbstractParsingClient, AbstractComponentManager
 from gib_parser.utils.generic import prep_name, get_law_details
 
@@ -30,10 +31,12 @@ from gib_parser.globals import SOURCE_URL
 
 # Gib pages parsing logic
 
+TIMEOUT = 10
+
 
 class GibPageOrchestrator:
     def __init__(self,
-                 parser : AbstractParsingClient,
+                 parser : SeleniumClient,
                  component_manager: AbstractComponentManager,
                  sections_folder :str,
                  laws_folder: str):
@@ -44,6 +47,30 @@ class GibPageOrchestrator:
         self.component_manager = component_manager
         self.handler_factory = PageHandlerFactory(selenium_client=self.parser,
                                                   component_manager=self.component_manager)
+
+    def _get_gib_tab_buttons(self):
+
+        """
+        Get maddeler, gerekceler blah blah..
+        """
+
+        wait = WebDriverWait(self.parser.driver, TIMEOUT)
+
+        main_tab = self.parser.driver.current_window_handle
+        self.parser.driver.switch_to.window(main_tab)
+
+        by, container_x_path = self.component_manager.get_component_id_by_tag("level_2_left_container")
+        by, buttons_x_path = self.component_manager.get_component_id_by_tag("level_2_left_buttons_on_container")
+
+        container = wait.until(EC.presence_of_element_located((by, container_x_path)))
+        items = container.find_elements(by, buttons_x_path)
+
+        if not items:
+            # alternatively, look for
+            items = container.find_elements(By.XPATH, ".//h6")
+        items =  [i for i in items if i.is_displayed()]
+        return items
+
 
     def parse(self):
         """
@@ -69,51 +96,42 @@ class GibPageOrchestrator:
             print(f"--- Sayfa {page} ---")
 
 
-            for  web_element in laws_drop_down:
+            for web_element in laws_drop_down:
                 meta_data = get_law_details(web_element.text)
                 law_name = prep_name(meta_data["kanun_adi"])
                 base_logger.info(f"\n➡️ Processing Law: <<{law_name}>> ")
-                # Click item in the combobox
 
-                main_tab = self.parser.driver.current_window_handle
-                self.parser.driver.execute_script("arguments[0].click();", web_element)
+                # Open the law in new tab and click
+                self.parser.click_in_new_tab(web_element_to_click=web_element)
 
-                WebDriverWait(self.parser.driver, 10).until(lambda d: len(d.window_handles) > 1)
-                new_tab = [h for h in self.parser.driver.window_handles if h != main_tab][0]
-                self.parser.driver.switch_to.window(new_tab)
+                time.sleep(5)
 
-                # Go for maddeler, gerekceler,,
+                # --> Parse lv2 sections under each law : Sections
+                # Go for maddeler, gerekceler, ckk, bkk
+                # Apply strategy pattern
+
+                left_menu = self._get_gib_tab_buttons()
 
 
-                print(self.parser.driver.title, self.parser.driver.current_url)  # örnek scraping
-                self.parser.driver.close()
-                self.parser.driver.switch_to.window(main_tab)
+                for button in left_menu:
+                    button_name = button.text
+                    section_name = prep_name(button_name)
+                    base_logger.info(f"\n➡️ Clicking section:<< {section_name} >>")
 
-                #
-                # select_lv1.select_by_index(ix)
-                # time.sleep(5)
+                    page_handler = self.handler_factory.get_handler(section_name.lower())
 
-                # # --> Parse lv2 sections under each law : Sections
-                # # Apply strategy pattern
-                # by, cid = self.component_manager.get_component_id_by_tag("level_2_left_tabs")
-                # left_elements = self.parser.find_elements(by, cid)
+                    if page_handler:
 
-                # for jx, left_el in enumerate(left_elements):
-                #     section_name = prep_name(left_el.text)
-                #     base_logger.info(f"\n➡️ Clicking section:<< {section_name} >>")
-                #     if jx == 2:
-                #         page_handler = self.handler_factory.get_handler(section_name.lower())
-                #         if page_handler:
-                #             by, cid = self.component_manager.get_component_id_by_tag("level_2_left_tabs_spider")
-                #             span_els = self.parser.find_element_in_element(left_el, by, cid)
-                #             self.parser.click_on_click_inner_elements(span_els)
-                #
-                #             page_handler.handle(parser=self.parser,
-                #                                 component_manager=self.component_manager,
-                #                                 law_name=law_name,
-                #                                 section_name=section_name,
-                #                                 sections_folder=self.sections_folder,
-                #                                 laws_folder=self.laws_folder)
+                        button.click()
+                        page_handler.handle(parser=self.parser,
+                                            component_manager=self.component_manager,
+                                            law_name=law_name,
+                                            section_name=section_name,
+                                            sections_folder=self.sections_folder,
+                                            laws_folder=self.laws_folder)
+
+                    print("d")
+
 
 
             page += 1

@@ -45,6 +45,10 @@ class AbstractParsingClient(ABC):
         pass
 
 
+    @abstractmethod
+    def click_in_new_tab(self, web_element_to_click):
+        pass
+
 class AbstractComponentManager(ABC):
     def __init__(self):
         pass
