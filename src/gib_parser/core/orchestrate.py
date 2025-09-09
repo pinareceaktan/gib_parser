@@ -78,7 +78,6 @@ class GibPageOrchestrator:
         :return:
         """
 
-
         page = 1
         while True:
             # Wait for to be loaded
@@ -91,12 +90,13 @@ class GibPageOrchestrator:
                                                     timeout=20)
             inner_comp_by, inner_comp_cid = inner_comp
             laws_drop_down = self.parser.find_elements(inner_comp_by, inner_comp_cid)
+            main_page =  self.parser.driver.current_window_handle
 
 
             print(f"--- Sayfa {page} ---")
 
 
-            for web_element in laws_drop_down:
+            for web_element in laws_drop_down[:1]:
                 meta_data = get_law_details(web_element.text)
                 law_name = prep_name(meta_data["kanun_adi"])
                 base_logger.info(f"\n➡️ Processing Law: <<{law_name}>> ")
@@ -112,9 +112,14 @@ class GibPageOrchestrator:
 
                 left_menu = self._get_gib_tab_buttons()
 
-
                 for button in left_menu:
                     button_name = button.text
+                    # if button_name != "CUMHURBAŞKANI KARARLARI":
+                    #     continue
+                    if button_name not in ["MADDELER", "GEREKÇELER"]:
+                        continue
+                    # if button_name != "GEREKÇELER":
+                    #     continue
                     section_name = prep_name(button_name)
                     base_logger.info(f"\n➡️ Clicking section:<< {section_name} >>")
 
@@ -130,15 +135,15 @@ class GibPageOrchestrator:
                                             sections_folder=self.sections_folder,
                                             laws_folder=self.laws_folder)
 
-                    print("d")
 
-
-
+                    time.sleep(2)
+                self.parser.driver.close()
+                self.parser.driver.switch_to.window(main_page)
             page += 1
 
             moved = self.parser.go_to_page(page)
             if not moved:
-                print("Son sayfaya geldik, bitiriyoruz.")
+                base_logger.info("End of all pages")
                 break
 
 

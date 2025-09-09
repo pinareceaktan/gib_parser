@@ -1,4 +1,5 @@
 from functools import wraps
+import time
 
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -19,7 +20,7 @@ from gib_parser.utils import logger
 
 
 base_logger = logger.get_logger(__name__)
-
+TIMEOUT =10
 
 
 def wait_for_children(timeout: int = 20):
@@ -107,6 +108,7 @@ def wait_for_id_to_be_filled(timeout=15):
     return decorator
 
 
+
 # singleton driver
 class SeleniumClient(AbstractParsingClient):
     def __init__(self, source_web_page, headless=False, timeout=20):
@@ -124,15 +126,6 @@ class SeleniumClient(AbstractParsingClient):
         base_logger.info(f"Passed {source_web_page} to driver")
 
 
-    def get_driver(self):
-        return self.driver
-
-    # will be deprecated
-    def make_driver_wait(self):
-        base_logger.info("make driver wait")
-        WebDriverWait(self.driver, 20)
-
-
     def make_driver_wait_for_a_text(self, outer_component, inner_component, min_cards, timeout=20):
         """
 
@@ -147,6 +140,7 @@ class SeleniumClient(AbstractParsingClient):
             lambda d: len(d.find_elements(inner_component_by, inner_component_cid)) >= min_cards
         )
 
+
     @wait_for_element(wait_for_options=True)
     def find_and_select_single_element(self, by, component_id):
         return Select(self.driver.find_element(by, component_id))
@@ -160,18 +154,24 @@ class SeleniumClient(AbstractParsingClient):
     def find_elements(self, by, component_id):
         return self.driver.find_elements(by, component_id)
 
-    @staticmethod
-    @wait_for_element_agnostic
-    def click_component(component: webdriver):
-        component.click()
+
+    def click_component(self, by, cid, timeout=TIMEOUT):
+        """
+        Wait until the element to be clickable and click
+        by:
+        cid:
+        timeout:
+        """
+
+        wait = WebDriverWait(self.driver, 10)
+        element = wait.until(EC.element_to_be_clickable((by, cid)))
+        element.click()
 
 
-    def select_component(self):
-        pass
-
-    @wait_for_id_to_be_filled()
-    def find_element(self, by, component_id):
-        return self.driver.find_element(by, component_id)
+    def find_element(self, by, component_id, timeout=TIMEOUT):
+        wait = WebDriverWait(self.driver, 10)
+        element = wait.until(EC.presence_of_element_located((by, component_id)))
+        return element
 
     @staticmethod
     def find_element_in_element(element, by, component_id):
@@ -206,8 +206,10 @@ class SeleniumClient(AbstractParsingClient):
                 pass
 
         if btn is None:
-            # metne göre fallback (daha toleranslı)
-            btn = nav.find_element(By.XPATH, f'.//button[normalize-space(text())="{page_num}"]')
+            try:
+                btn = nav.find_element(By.XPATH, f'.//button[normalize-space(text())="{page_num}"]')
+            except Exception:
+                return False
 
         if btn is None:
             return False
@@ -217,6 +219,7 @@ class SeleniumClient(AbstractParsingClient):
         btn.click()
 
         return True
+
 
     def click_in_new_tab(self, web_element_to_click):
         """
@@ -248,5 +251,108 @@ class SeleniumClient(AbstractParsingClient):
         except TimeoutError:
             pass
 
+    def get_main_page(self, timeout=TIMEOUT):
+        wait = WebDriverWait(self.driver, timeout)
+        container = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "main")))
+        return container
 
 
+    def collect_all_box_components(self, timeout=TIMEOUT, include_filter_box=False, scope="active_panel")->dict:
+        """
+        scope: "active_panel" -> sadece görünür tabpanel (önerilen)
+               "main"         -> tüm sayfa ana içeriği
+        include_filter_box: True ise combobox'ı içeren ilk box'ı da dahil eder
+        """
+        wait = WebDriverWait(self.driver, timeout)
+
+        # Get to the main page/ active panel
+        container = self.get_main_page()
+
+        # 2) Box component için yapısal, metinden bağımsız selector
+        # - data-testid="box-component"
+        # - içinde gerçek içerik var: (cms-content veya typography-component)
+        # - combobox içeren filtre box'ını dışla (istersen include_filter_box=True yap)
+        xp = ".//div[@data-testid='box-component']" \
+             "[.//div[contains(@class,'cms-content')] or .//*[@data-testid='typography-component']]"
+        if not include_filter_box:
+            xp = xp.replace("]", "][not(.//input[@role='combobox'])]")  # combobox'lı olanı çıkar
+
+        # 3) Adetini al, her turda locate et (stale riskine karşı)
+        boxes_count = len(container.find_elements(By.XPATH, xp))
+        # results = []
+        texts = ""
+        for i in range(1, boxes_count + 1):
+            box = container.find_element(By.XPATH, f"({xp})[{i}]")
+            html = box.get_attribute("outerHTML")
+            text = (box.text or "").strip()
+            # Çok boş wrapper'ları at
+            if not text and "cms-content" not in html:
+                continue
+            # results.append({"index": i, "text": text, "html": html})
+            texts += text
+            # sleep a little
+            time.sleep(0.05)
+        return {"content": texts}
+
+
+    def get_law_justification_link_from_arrow(self, timeout=TIMEOUT)->dict:
+
+        wait = WebDriverWait(self.driver, timeout)
+
+        # Keep root to turn back to the old tab later
+        root = self.driver.current_window_handle
+
+
+        # 1) Metne bağlı olmadan: pointer'lı satırda LaunchIcon'u hedefle
+        #    (ilk satırı istiyorsan [1], hepsini almak istersen [.] kaldırıp find_elements kullan)
+        row = wait.until(EC.presence_of_element_located((
+            By.XPATH,
+            ".//*[contains(@style,'cursor') and contains(@style,'pointer')]"
+            "[.//*[@data-testid='LaunchIcon' or local-name()='svg']][1]"
+        )))
+        # 2) "XX KANUNU" satırındaki kırmızı ok (LaunchIcon) elemanını bul
+
+        arrow = row.find_element(By.XPATH, ".//*[@data-testid='LaunchIcon' or local-name()='svg']")
+
+        # 3) Tıklanabilir ata (anchor varsa onu; yoksa pointer stiline sahip kapsayıcı) ve tıkla
+        try:
+            clickable = arrow.find_element(By.XPATH, "ancestor::a[1]")
+        except NoSuchElementException:
+            # anchor yoksa, pointer stiline sahip en yakın kapsayıcıyı kullan
+            try:
+                clickable = arrow.find_element(By.XPATH, "ancestor::*[contains(@style,'cursor')][1]")
+            except NoSuchElementException:
+                clickable = arrow  # son çare: ikonun kendisi
+
+        # 4) Yeni sekmeye geç
+        existing = set(self.driver.window_handles)
+        self.driver.execute_script("arguments[0].scrollIntoView({block:'center'});", clickable)
+        try:
+            wait.until(EC.element_to_be_clickable(clickable)).click()
+        except Exception:
+            self.driver.execute_script("arguments[0].click();", clickable)
+
+        # Get to the new tab
+        wait.until(lambda d: len(d.window_handles) > len(existing))
+        new_handle = [h for h in self.driver.window_handles if h not in existing][0]
+        self.driver.switch_to.window(new_handle)
+
+        # wait for new tab to be loaded
+        wait.until(lambda d: d.execute_script("return document.readyState") == "complete")
+        # get the new tab's main
+        main = self.get_main_page()
+        pdf_link = main.find_element(
+            By.XPATH,
+            ".//a[contains(@href,'.pdf') or contains(@href,'/file/getFile')]"
+        )
+
+        pdf_url = pdf_link.get_attribute("href")
+        # Get cookies of selenium session
+        cookies = {c["name"]: c["value"] for c in self.driver.get_cookies()}
+        headers = {"User-Agent": self.driver.execute_script("return navigator.userAgent")}
+
+        # close the new tab
+        self.driver.close()
+        self.driver.switch_to.window(root)
+
+        return {"pdf_url": pdf_url, "cookies": cookies, "headers": headers}

@@ -32,19 +32,14 @@ web_component_registry = {
     "level_1_check": WebComponent("level_1_check", By.XPATH, "//p[normalize-space(.)='Temel Kanunlar']"),
     "level_1_component": WebComponent("level_1_component", By.CSS_SELECTOR, 'a[href^="/mevzuat/kanun/"]'),
 
-    "level_2_left_container": WebComponent("level_2_left_tabs", By.XPATH, "//div[@id='pageContainer']/div/div/main/div/div[3]/div/div/div/div/div"),
-    "level_2_left_buttons_on_container": WebComponent("level_2_left_tabs_span", By.XPATH, "./div/h6"),
+    "level_2_left_container": WebComponent("level_2_left_container", By.XPATH, "//div[@id='pageContainer']/div/div/main/div/div[3]/div/div/div/div/div"),
+    "level_2_left_buttons_on_container": WebComponent("level_2_left_buttons_on_container", By.XPATH, "./div/h6"),
 
-    "level_3_maddeler_combobox": WebComponent("level_3_maddeler_combobox", By.ID, "r2:"),
-    "level_3_maddeler_body": WebComponent("level_3_maddeler_body", By.ID, "div-icerik-maddeler"),
+    "level_3_maddeler_combobox_aria": WebComponent("level_3_maddeler_combobox_aria", By.CSS_SELECTOR, '[role="combobox"], input[aria-controls]'),
+    "level_3_maddeler_tbox": WebComponent("level_3_maddeler_tbox", By.XPATH, ("//input[@role='combobox']"
+                                                                           "/ancestor::div[@data-testid='box-component'][1]"
+                                                                           "/following::div[@data-testid='box-component'][.//div[contains(@class,'cms-content')]]")),
 
-    # "level_3_left_el_gerekçeler": WebComponent("level_3_gerekceler_left_el", By.TAG_NAME, "mevzuat_ger"),
-    "level_3_gerekceler_href_comp": WebComponent("level_3_gerekceler_href_comp", By.ID, "div-liste-gerekce"),
-    "level_3_gerekceler_href_spider": WebComponent("level_3_gerekceler_href_span", By.TAG_NAME, "li"),
-    "level_3_gerekceler_body": WebComponent("level_3_gerekceler_body", By.XPATH, "//ul/li[@onclick[contains(., 'div-icerik-gerekce')]]"),
-    "level_3_gerekceler_href": WebComponent("level_3_gerekceler_href", By.XPATH, "//a[contains(text(), 'Buraya')]"),
-
-    # "level_3_left_el_cumhurbaşkanı_kararları": WebComponent("level_3_ckk_left_el", By.ID, "mevzuat_ck"),
     "level_3_ck_karari_tab": WebComponent("level_3_ck_karari_tab", By.ID, "mevzuat_ck"),
     "level_3_ck_karari_body": WebComponent("level_3_ck_karari_body", By.XPATH, "//tr[@class='mevzuat-liste-baslik-satir']"),
     "level_3_ck_karari_table_header": WebComponent("level_3_ck_karari_table_header", By.TAG_NAME, "td"),

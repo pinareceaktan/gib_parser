@@ -29,7 +29,7 @@ class PageHandlerFactory(AbstractPageHandlerFactory):
         self._registry  = {
             "maddeler": LawMattersHandler(),
             "gerekçeler": LawJustificationHandler(),
-            "cumhurbaşkanı_kararları":PresidentialDecreeHandler(),
+            "cumhurbaşkani_kararlari":PresidentialDecreeHandler(),
             "b.k.k.":MinisterialDecreeHandler(),
             "yönetmelikler": RegulationsHandler(),
             "tebliğler": NoticesHandler(),

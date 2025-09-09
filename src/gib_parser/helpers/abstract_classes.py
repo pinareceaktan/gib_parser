@@ -7,10 +7,6 @@ class AbstractParsingClient(ABC):
 
 
     @abstractmethod
-    def make_driver_wait(self):
-        pass
-
-    @abstractmethod
     def make_driver_wait_for_a_text(self, outer_component, inner_component, min_cards, timeout):
         pass
 
@@ -27,21 +23,16 @@ class AbstractParsingClient(ABC):
     def find_elements(self, by, component_id):
         pass
 
-    @staticmethod
     @abstractmethod
-    def click_component(component):
+    def click_component(self, by, cid, timeout):
         pass
 
     @abstractmethod
-    def select_component(self):
+    def find_element(self, by, component_id, timeout):
         pass
 
     @abstractmethod
-    def find_element(self, by, component_id):
-        pass
-
-    @abstractmethod
-    def go_to_page(self, page_num, timeout=10):
+    def go_to_page(self, page_num, timeout):
         pass
 
 
